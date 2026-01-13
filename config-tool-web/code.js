@@ -7,6 +7,7 @@ const REPORT_ID_MONITOR = 101;
 const STICKY_FLAG = 1 << 0;
 const TAP_FLAG = 1 << 1;
 const HOLD_FLAG = 1 << 2;
+const REPEATABLE_FLAG = 1 << 3;
 const CONFIG_SIZE = 32;
 const CONFIG_VERSION = 18;
 const VENDOR_ID = 0xCAFE;
@@ -155,6 +156,7 @@ let config = {
         'sticky': false,
         'tap': false,
         'hold': false,
+        'repeatable': false,
         'scaling': DEFAULT_SCALING,
         'source_port': 0,
         'target_port': 0,
@@ -319,6 +321,7 @@ async function load_from_device() {
                 'sticky': (mapping_flags & STICKY_FLAG) != 0,
                 'tap': (mapping_flags & TAP_FLAG) != 0,
                 'hold': (mapping_flags & HOLD_FLAG) != 0,
+                'repeatable': (mapping_flags & REPEATABLE_FLAG) != 0,
                 'source_port': hub_ports & 0x0F,
                 'target_port': (hub_ports >> 4) & 0x0F,
             });
@@ -463,7 +466,8 @@ async function save_to_device() {
                 [UINT8, layer_list_to_mask(mapping['layers'])],
                 [UINT8, (mapping['sticky'] ? STICKY_FLAG : 0)
                     | (mapping['tap'] ? TAP_FLAG : 0)
-                    | (mapping['hold'] ? HOLD_FLAG : 0)],
+                    | (mapping['hold'] ? HOLD_FLAG : 0)
+                    | (mapping['repeatable'] ? REPEATABLE_FLAG : 0)],
                 [UINT8, ((mapping['target_port'] & 0x0F) << 4) | (mapping['source_port'] & 0x0F)],
             ]);
         }
@@ -800,6 +804,11 @@ function add_mapping(mapping) {
     const hold_checkbox = clone.querySelector(".hold_checkbox");
     hold_checkbox.checked = mapping['hold'];
     hold_checkbox.addEventListener("change", hold_onclick(mapping, hold_checkbox));
+
+    const repeatable_checkbox = clone.querySelector(".repeatable_checkbox");
+    repeatable_checkbox.checked = mapping['repeatable'];
+    repeatable_checkbox.addEventListener("change", repeatable_onclick(mapping, repeatable_checkbox));
+
     const scaling_input = clone.querySelector(".scaling_input");
     scaling_input.value = mapping['scaling'] / 1000;
     scaling_input.addEventListener("input", scaling_onchange(mapping, scaling_input));
@@ -1056,6 +1065,12 @@ function hold_onclick(mapping, element) {
     };
 }
 
+function repeatable_onclick(mapping, element) {
+    return function () {
+        mapping['repeatable'] = element.checked;
+    };
+}
+
 function scaling_onchange(mapping, element) {
     return function () {
         mapping['scaling'] = element.value === '' ? DEFAULT_SCALING : Math.round(parseFloat(element.value) * 1000);
@@ -1188,6 +1203,7 @@ function add_empty_mapping(source_usage = '0x00000000') {
         'sticky': false,
         'tap': false,
         'hold': false,
+        'repeatable': false,
         'scaling': DEFAULT_SCALING,
         'source_port': 0,
         'target_port': 0,

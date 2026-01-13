@@ -136,6 +136,7 @@ struct map_source_t {
     bool sticky = false;
     bool tap = false;
     bool hold = false;
+    bool repeatable = false;
     bool is_relative = false;
     bool is_binary = false;
     uint8_t orig_source_port = 0;

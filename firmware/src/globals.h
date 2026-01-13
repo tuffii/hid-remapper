@@ -48,6 +48,8 @@ extern uint8_t resolution_multiplier;
 #define NMACROS 32
 extern std::vector<std::vector<uint32_t>> macros[NMACROS];
 
+constexpr size_t MAX_MACRO_QUEUE = 128;
+
 #define NEXPRESSIONS 8
 extern std::vector<expr_elem_t> expressions[NEXPRESSIONS];
 

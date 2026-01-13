@@ -22,6 +22,7 @@
 const uint8_t MAPPING_FLAG_STICKY = 1 << 0;
 const uint8_t MAPPING_FLAG_TAP = 1 << 1;
 const uint8_t MAPPING_FLAG_HOLD = 1 << 2;
+const uint8_t MAPPING_FLAG_REPEATABLE = 1 << 3;
 
 const uint8_t V_RESOLUTION_BITMASK = (1 << 0);
 const uint8_t H_RESOLUTION_BITMASK = (1 << 2);
@@ -1188,13 +1189,26 @@ void process_mapping(bool auto_repeat) {
             continue;
         }
         for (auto const& map_source : rev_map.sources) {
-            if ((layer_state_mask & map_source.layer_mask) &&
-                ((!map_source.tap && !map_source.hold && (*(map_source.input_state + PREV_STATE_OFFSET) == 0) && (*map_source.input_state != 0)) ||
-                    (map_source.hold && map_source.tap_hold_state->hold && !map_source.tap_hold_state->prev_hold) ||
-                    (map_source.tap && map_source.tap_hold_state->tap))) {
+
+            bool edge_trigger =
+                (!map_source.tap && !map_source.hold &&
+                (*(map_source.input_state + PREV_STATE_OFFSET) == 0) && (*map_source.input_state != 0)) ||
+                (map_source.hold && map_source.tap_hold_state->hold && !map_source.tap_hold_state->prev_hold) ||
+                (map_source.tap && map_source.tap_hold_state->tap);
+
+            bool repeat_trigger = map_source.repeatable && (*map_source.input_state != 0);
+
+            if ((layer_state_mask & map_source.layer_mask) && (edge_trigger || repeat_trigger)) {
                 my_mutex_enter(MutexId::MACROS);
-                for (auto const& usages : macros[macro]) {
-                    macro_queue.push((macro_entry_t){ duration_left : macro_entry_duration, items : usages });
+                if (macro_queue.size() < MAX_MACRO_QUEUE) {
+                    for (auto const& usages : macros[macro]) {
+                        macro_queue.push(
+                            (macro_entry_t){
+                                .duration_left = macro_entry_duration,
+                                .items = usages
+                            }
+                        );
+                    }
                 }
                 my_mutex_exit(MutexId::MACROS);
             }
